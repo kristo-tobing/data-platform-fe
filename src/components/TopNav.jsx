@@ -1,6 +1,6 @@
 import { getUserInfo } from '../data/mock.js';
 
-export default function TopNav({ user, onLogout, onCreateClick }) {
+export default function TopNav({ user, onLogout, onCreateClick, onNavigate, currentPage }) {
   const { displayName, division } = getUserInfo(user);
   return (
     <div className="topnav">
@@ -11,9 +11,16 @@ export default function TopNav({ user, onLogout, onCreateClick }) {
 
       <div style={{ display: 'flex', gap: 24, height: '100%' }}>
         <div 
-          style={{ display: 'flex', alignItems: 'center', height: '100%', fontSize: 13, fontWeight: 600, borderBottom: '2px solid var(--accent)', color: 'var(--t1)' }}
+          onClick={() => onNavigate && onNavigate('pipelines')}
+          style={{ display: 'flex', alignItems: 'center', height: '100%', fontSize: 13, fontWeight: 600, borderBottom: currentPage === 'pipelines' ? '2px solid var(--accent)' : '2px solid transparent', color: currentPage === 'pipelines' ? 'var(--t1)' : 'var(--t2)', cursor: 'pointer', transition: 'all 0.15s' }}
         >
           Pipelines
+        </div>
+        <div 
+          onClick={() => onNavigate && onNavigate('tickets')}
+          style={{ display: 'flex', alignItems: 'center', height: '100%', fontSize: 13, fontWeight: 600, borderBottom: currentPage === 'tickets' ? '2px solid var(--accent)' : '2px solid transparent', color: currentPage === 'tickets' ? 'var(--t1)' : 'var(--t2)', cursor: 'pointer', transition: 'all 0.15s' }}
+        >
+          Tickets
         </div>
       </div>
       

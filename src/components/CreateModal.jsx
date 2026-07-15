@@ -22,6 +22,8 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
   const [schedule, setSchedule] = useState({});
   const [sql, setSql] = useState('');
   const [schema, setSchema] = useState([]);
+  const [tableDesc, setTableDesc] = useState('');
+  const [reason, setReason] = useState('');
   
   const [submitting, setSubmitting] = useState(false);
   const [queryValid, setQueryValid] = useState(false);
@@ -84,6 +86,8 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
         });
         setSql(latest.sql || '');
         setSchema(latest.schema || []);
+        setTableDesc(latest.tableDesc || '');
+        setReason(latest.reason || '');
         addToast('success', 'Form pre-filled', `Loaded latest config from ${val}`);
       }
       setOpLabel('Update');
@@ -96,17 +100,17 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
   const finalTbl = tblSelect === 'NEW' ? newTbl : tblSelect;
 
   const handleSubmit = () => {
-    if (!ticketName || !user || !desc || !ds || !finalTbl || !sql.trim()) {
-      addToast('error', 'Missing fields', 'Please fill in all required fields including the Query.');
+    if (!ticketName || !user || !desc || !ds || !finalTbl || !sql.trim() || (opLabel === 'Update' && !reason)) {
+      addToast('error', 'Missing fields', 'Please fill in all required fields including the Query' + (opLabel === 'Update' ? ' and Reason to Change.' : '.'));
       return;
     }
     if (!queryValid) {
-      addToast('error', 'Validation Failed', 'Please run validation and ensure no blocker errors exist.');
+      addToast('error', 'Validation Failed', 'Please run validation and ensure no mandatory errors exist.');
       return;
     }
     setSubmitting(true);
     setTimeout(() => {
-      onSubmit({ name: ticketName, requester: user, operation: opLabel, domainLabels, desc, dataset: ds, table: finalTbl, updateStrategy, ...schedule, sql, schema });
+      onSubmit({ name: ticketName, requester: user, operation: opLabel, domainLabels, desc, tableDesc, reason: opLabel === 'Update' ? reason : undefined, dataset: ds, table: finalTbl, updateStrategy, ...schedule, sql, schema });
       setSubmitting(false);
       onClose();
       addToast('success', 'Ticket submitted!', `New ticket created for ${finalTbl}`);
@@ -156,16 +160,24 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
           </div>
           <div className="f-row full">
             <div className="f-grp">
-              <label className="f-lbl">Domain Labels <span className="req">*</span></label>
+              <label className="f-lbl">Division <span className="req">*</span></label>
               <LabelPicker selected={domainLabels} onChange={setDomainLabels} />
             </div>
           </div>
           <div className="f-row full">
             <div className="f-grp">
-              <label className="f-lbl">Description <span className="req">*</span></label>
+              <label className="f-lbl">Pipeline Description <span className="req">*</span></label>
               <textarea rows={3} value={desc} onChange={e => setDesc(e.target.value)} />
             </div>
           </div>
+          {opLabel === 'Update' && (
+            <div className="f-row full">
+              <div className="f-grp">
+                <label className="f-lbl">Reason to Change <span className="req">*</span></label>
+                <textarea rows={2} value={reason} onChange={e => setReason(e.target.value)} placeholder="Explain why this pipeline needs to be updated..." />
+              </div>
+            </div>
+          )}
 
           <div className="f-sec">Target Unit</div>
           <div className="f-row full">
@@ -205,7 +217,7 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
             required 
             onValidationComplete={setQueryValid} 
           />
-          <SchemaBuilder value={schema} onChange={setSchema} isUpdate={opLabel === 'Update'} />
+          <SchemaBuilder value={schema} onChange={setSchema} isUpdate={opLabel === 'Update'} tableDesc={tableDesc} onTableDescChange={setTableDesc} />
         </div>
 
         <div className="modal-ft">

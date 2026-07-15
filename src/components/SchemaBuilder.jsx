@@ -204,7 +204,7 @@ function newRow() {
 }
 
 /* ── SchemaBuilder ──────────────────────────────────────── */
-export default function SchemaBuilder({ value = [], onChange, isUpdate = false }) {
+export default function SchemaBuilder({ value = [], onChange, isUpdate = false, tableDesc, onTableDescChange }) {
   const [open, setOpen] = useState(value.length > 0);
   const [initialIds, setInitialIds] = useState(() => new Set((value || []).map(r => r.id)));
   const [expandedRowId, setExpandedRowId] = useState(null);
@@ -237,7 +237,17 @@ export default function SchemaBuilder({ value = [], onChange, isUpdate = false }
       </div>
 
       {open && (
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ overflowX: 'auto', padding: '16px 0 8px 0' }}>
+          <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)' }}>Table Description (Optional)</label>
+            <textarea
+              rows={2}
+              value={tableDesc || ''}
+              onChange={e => onTableDescChange && onTableDescChange(e.target.value)}
+              placeholder="Provide a general description for the overall table..."
+              style={{ width: '100%', padding: '8px 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--t1)', fontSize: 13, resize: 'vertical' }}
+            />
+          </div>
           <table className="sb-tbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>

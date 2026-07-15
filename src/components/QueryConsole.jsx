@@ -61,6 +61,9 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
         } else if (check.id === 'pii' && (simMode === 'demo-error' || simMode === 'demo-warning')) {
           status = 'warning';
           detail = 'PII Detected';
+        } else if (check.id === 'reference' && (simMode === 'demo-error' || simMode === 'demo-warning')) {
+          status = 'warning';
+          detail = 'Uses other division table';
         }
       }
 
@@ -153,7 +156,7 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
           </div>
 
           <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(210,153,34,0.1)', border: '1px solid #d29922', borderRadius: 4, fontSize: 11, color: 'var(--t1)' }}>
-            <strong>💡 Tip:</strong> Validation must pass without blocker errors to submit. Warnings are allowed.
+            <strong>💡 Tip:</strong> Validation must pass without mandatory errors to submit. Warnings are allowed.
           </div>
 
           {checkResults && (
@@ -175,7 +178,7 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
                         {check.name}
                         {check.isBlocker && (
                           <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', background: 'rgba(255,255,255,0.1)', borderRadius: 4, color: 'var(--t3)' }}>
-                            BLOCKER
+                            MANDATORY
                           </span>
                         )}
                       </div>

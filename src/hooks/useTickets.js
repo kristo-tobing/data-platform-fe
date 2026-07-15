@@ -5,12 +5,18 @@ export function useTickets() {
   const [datasets, setDatasets] = useState(() => JSON.parse(JSON.stringify(DATASETS)));
   const [tickets, setTickets] = useState(() => JSON.parse(JSON.stringify(MOCK_TICKETS)));
 
-  const getTicketsForTable = useCallback((table) => tickets[table] || [], [tickets]);
+  const getTicketsForTable = useCallback((table) => {
+    const list = tickets[table] || [];
+    return [...list].sort((a, b) => {
+      const cmp = (b.date || '').localeCompare(a.date || '');
+      return cmp !== 0 ? cmp : (b.id || '').localeCompare(a.id || '');
+    });
+  }, [tickets]);
 
   const getLatestTicket = useCallback((table) => {
-    const list = tickets[table] || [];
+    const list = getTicketsForTable(table);
     return list[0] || null;
-  }, [tickets]);
+  }, [getTicketsForTable]);
 
   const submitTicket = useCallback((data) => {
     const { dataset, table } = data;

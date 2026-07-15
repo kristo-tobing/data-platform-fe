@@ -8,7 +8,7 @@ import { useTickets } from '../hooks/useTickets.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserInfo } from '../data/mock.js';
 
-export default function HomePage({ user, onLogout }) {
+export default function HomePage({ user, onLogout, onNavigate }) {
   const { datasets, tickets, getTicketsForTable, getLatestTicket, submitTicket } = useTickets();
   const { toasts, addToast } = useToast();
 
@@ -35,14 +35,14 @@ export default function HomePage({ user, onLogout }) {
 
   const activeTickets = activeTbl ? getTicketsForTable(activeTbl) : [];
 
-  // Split into division-owned vs public, filter by DONE status
-  const { myDatasets, publicDatasets } = React.useMemo(() => {
+  // Filter by DONE status for my division
+  const { myDatasets } = React.useMemo(() => {
     const applyFilters = (ds) => {
       let filtered = {
         ...ds,
         tables: ds.tables.filter(tbl => {
-          const latest = getLatestTicket(tbl);
-          if (!latest || latest.status !== 'DONE') return false;
+          const ticketsList = getTicketsForTable(tbl);
+          if (ticketsList.length === 0) return false;
           if (filterTblSearch && tbl !== filterTblSearch) return false;
           return true;
         }),
@@ -55,20 +55,14 @@ export default function HomePage({ user, onLogout }) {
       .map(applyFilters)
       .filter(ds => ds.tables.length > 0);
 
-    const pub = datasets
-      .filter(ds => ds.public)
-      .map(applyFilters)
-      .filter(ds => ds.tables.length > 0);
-
-    return { myDatasets: mine, publicDatasets: pub };
-  }, [datasets, division, filterTblSearch, getLatestTicket]);
+    return { myDatasets: mine };
+  }, [datasets, division, filterTblSearch, getTicketsForTable]);
 
   const allVisibleTables = React.useMemo(() => {
     return Array.from(new Set([
       ...myDatasets.flatMap(ds => ds.tables),
-      ...publicDatasets.flatMap(ds => ds.tables),
     ])).sort();
-  }, [myDatasets, publicDatasets]);
+  }, [myDatasets]);
 
   const divisionLabel = division
     ? division.charAt(0).toUpperCase() + division.slice(1)
@@ -80,6 +74,8 @@ export default function HomePage({ user, onLogout }) {
         user={user}
         onLogout={onLogout}
         onCreateClick={() => setCreateOpen(true)}
+        onNavigate={onNavigate}
+        currentPage="pipelines"
       />
 
       <div className="home-body">
@@ -130,34 +126,6 @@ export default function HomePage({ user, onLogout }) {
             </div>
           )}
 
-          {/* Public Datasets */}
-          <div style={{ maxWidth: 1400, margin: '24px auto 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{
-                fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                color: 'var(--green)', padding: '3px 10px', borderRadius: 12,
-                background: 'rgba(63,185,80,0.1)', border: '1px solid rgba(63,185,80,0.25)',
-              }}>
-                Public
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--t3)' }}>
-                Shared datasets accessible by all divisions
-              </div>
-            </div>
-          </div>
-
-          {publicDatasets.length > 0 ? (
-            <DatasetGrid
-              datasets={publicDatasets}
-              getTicketsForTable={getTicketsForTable}
-              selectedTable={activeTbl}
-              onCardClick={handleCardClick}
-            />
-          ) : (
-            <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px', background: 'var(--surface)', borderRadius: 'var(--r-md)', border: '1px dashed var(--border)', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
-              No public tables available.
-            </div>
-          )}
         </main>
 
         <UpdateDrawer
@@ -168,6 +136,7 @@ export default function HomePage({ user, onLogout }) {
           onClose={closeDrawer}
           onSubmit={submitTicket}
           addToast={addToast}
+          readOnly={false}
         />
       </div>
 
@@ -177,7 +146,7 @@ export default function HomePage({ user, onLogout }) {
         onClose={() => setCreateOpen(false)}
         onSubmit={submitTicket}
         addToast={addToast}
-        datasets={[...myDatasets, ...publicDatasets]}
+        datasets={myDatasets}
         getLatestTicket={getLatestTicket}
       />
 

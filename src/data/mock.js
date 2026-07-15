@@ -1,13 +1,14 @@
 // ── Domain Labels ──────────────────────────────────────
 export const LABELS = [
-  { id: 'collection',  label: 'Collection',  color: '#4f9cf9', bg: 'rgba(79,156,249,.15)' },
-  { id: 'marketing',   label: 'Marketing',   color: '#f778ba', bg: 'rgba(247,120,186,.15)' },
-  { id: 'finance',     label: 'Finance',     color: '#3fb950', bg: 'rgba(63,185,80,.15)' },
-  { id: 'operations',  label: 'Operations',  color: '#d29922', bg: 'rgba(210,153,34,.15)' },
-  { id: 'product',     label: 'Product',     color: '#bc8cff', bg: 'rgba(188,140,255,.15)' },
-  { id: 'hr',          label: 'HR',          color: '#39c5cf', bg: 'rgba(57,197,207,.15)' },
-  { id: 'analytics',   label: 'Analytics',   color: '#f85149', bg: 'rgba(248,81,73,.15)' },
-  { id: 'engineering', label: 'Engineering', color: '#e8c46a', bg: 'rgba(232,196,106,.15)' },
+  { id: 'bizdev',      label: 'BizDev',      color: '#4f9cf9', bg: 'rgba(79,156,249,.15)' },
+  { id: 'growth',      label: 'Growth',      color: '#f778ba', bg: 'rgba(247,120,186,.15)' },
+  { id: 'collection',  label: 'Collection',  color: '#3fb950', bg: 'rgba(63,185,80,.15)' },
+  { id: 'ops',         label: 'Ops',         color: '#d29922', bg: 'rgba(210,153,34,.15)' },
+  { id: 'finance',     label: 'Finance',     color: '#bc8cff', bg: 'rgba(188,140,255,.15)' },
+  { id: 'product',     label: 'Product',     color: '#39c5cf', bg: 'rgba(57,197,207,.15)' },
+  { id: 'engineering', label: 'Engineering', color: '#f85149', bg: 'rgba(248,81,73,.15)' },
+  { id: 'risk',        label: 'Risk',        color: '#e8c46a', bg: 'rgba(232,196,106,.15)' },
+  { id: 'marketing',   label: 'Marketing',   color: '#a371f7', bg: 'rgba(163,113,247,.15)' },
 ];
 
 // ── Users & Divisions ──────────────────────────────────
@@ -18,12 +19,12 @@ export const USERS = {
   'carol.ng':    { displayName: 'Carol Ng',     division: 'marketing' },
   'david.wu':    { displayName: 'David Wu',     division: 'finance'   },
   'eve.lim':     { displayName: 'Eve Lim',      division: 'finance'   },
-  'frank.oh':    { displayName: 'Frank Oh',     division: 'operations'},
+  'frank.oh':    { displayName: 'Frank Oh',     division: 'ops'       },
   'grace.lee':   { displayName: 'Grace Lee',    division: 'product'   },
   'henry.ko':    { displayName: 'Henry Ko',     division: 'product'   },
-  'sara.wong':   { displayName: 'Sara Wong',    division: 'hr'        },
-  'john.smith':  { displayName: 'John Smith',   division: 'operations'},
-  'jane.doe':    { displayName: 'Jane Doe',     division: 'operations'},
+  'sara.wong':   { displayName: 'Sara Wong',    division: 'bizdev'    },
+  'john.smith':  { displayName: 'John Smith',   division: 'ops'       },
+  'jane.doe':    { displayName: 'Jane Doe',     division: 'ops'       },
 };
 
 export function getUserInfo(username) {
@@ -75,7 +76,7 @@ export const DATASETS = [
     tables: ['finance__payment__monthly', 'finance__invoice__daily'],
   },
   {
-    id: 'ops_raw', locked: false, division: 'operations', public: false,
+    id: 'ops_raw', locked: false, division: 'ops', public: false,
     tables: ['ops__event__hourly'],
   },
   {
@@ -83,11 +84,11 @@ export const DATASETS = [
     tables: ['product__click__daily', 'product__view__hourly'],
   },
   {
-    id: 'sales_raw', locked: false, division: 'operations', public: false,
+    id: 'sales_raw', locked: false, division: 'growth', public: false,
     tables: ['sales__revenue__daily', 'sales__leads__hourly'],
   },
   {
-    id: 'hr_raw', locked: false, division: 'hr', public: false,
+    id: 'hr_raw', locked: false, division: 'bizdev', public: false,
     tables: ['hr__headcount__monthly', 'hr__attendance__daily'],
   },
   {
@@ -131,6 +132,17 @@ export const MOCK_TICKETS = {
         { name: 'order_date',   type: 'DATE',    desc: 'Date of order',   nullable: false },
         { name: 'total_amount', type: 'FLOAT64', desc: 'Sum of value',    nullable: true  },
       ],
+    },
+    {
+      id: 'REQ023', name: 'Add customer PII to orders', date: '2026-07-10', requester: 'bob.tan',
+      operation: 'Update', domainLabels: ['marketing'], status: 'REJECTED',
+      rejectComment: 'Please do not include raw customer emails. You must use hashed equivalents (e.g. SHA256) per our PII compliance policy.',
+      desc: 'Attempt to add plain-text customer emails to the order table. Rejected due to PII compliance.',
+      schedule: '0 5 * * *', freq: 'daily', time: '05:00', timezone: 'UTC', endDate: '2026-09-30',
+      updateStrategy: 'merge',
+      dataset: 'marketing_raw', table: 'marketing__order__daily',
+      sql: `SELECT order_id, order_date, amount, customer_email\nFROM \`marketing_raw.orders\``,
+      schema: [],
     },
   ],
   'marketing__campaign__daily': [
@@ -208,153 +220,6 @@ export const MOCK_TICKETS = {
         { name: 'retained_users',    type: 'INT64',   desc: 'Returning user count',   nullable: false },
         { name: 'retention_rate',    type: 'FLOAT64', desc: 'Retention %',            nullable: true  },
       ],
-    },
-  ],
-  'finance__payment__monthly': [
-    {
-      id: 'REQ005', name: 'Update Monthly Payments', date: '2026-06-01', requester: 'david.wu',
-      operation: 'Update', domainLabels: ['finance'], status: 'DONE',
-      desc: 'Monthly payment reconciliation.',
-      schedule: '0 2 1 * *', freq: 'monthly', time: '02:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'finance_raw', table: 'finance__payment__monthly',
-      sql: `SELECT payment_method, DATE_TRUNC(payment_date, MONTH) AS month,\n  COUNT(*) AS total_txn, SUM(amount_usd) AS total_volume\nFROM \`finance_raw.payments\`\nGROUP BY 1, 2`,
-      schema: [],
-    },
-    {
-      id: 'REQ006', name: 'Init Payment Monthly', date: '2026-03-10', requester: 'k.tobing',
-      operation: 'Create', domainLabels: ['finance'], status: 'DONE',
-      desc: 'Initial payment monthly pipeline setup.',
-      schedule: '0 3 1 * *', freq: 'monthly', time: '03:00', timezone: 'UTC', endDate: '2026-06-30',
-      dataset: 'finance_raw', table: 'finance__payment__monthly', sql: '', schema: [],
-    },
-  ],
-  'finance__invoice__daily': [
-    {
-      id: 'REQ007', name: 'Invoice Export Pipeline', date: '2026-06-20', requester: 'eve.lim',
-      operation: 'Create', domainLabels: ['finance'], status: 'DONE',
-      desc: 'Daily invoice export pipeline for ERP reconciliation.',
-      schedule: '0 3 * * *', freq: 'daily', time: '03:00', timezone: 'Asia/Jakarta', endDate: '2026-12-31',
-      dataset: 'finance_raw', table: 'finance__invoice__daily', sql: '', schema: [],
-    },
-  ],
-  'ops__event__hourly': [
-    {
-      id: 'REQ008', name: 'Hourly Event Stream', date: '2026-07-04', requester: 'frank.oh',
-      operation: 'Create', domainLabels: ['operations'], status: 'OPEN',
-      desc: 'Operational event stream aggregation — hourly counts by event type.',
-      schedule: '30 * * * *', freq: 'hourly', time: '00:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'ops_raw', table: 'ops__event__hourly', sql: '', schema: [],
-    },
-  ],
-  'product__click__daily': [
-    {
-      id: 'REQ009', name: 'Daily Click Aggregation', date: '2026-06-15', requester: 'grace.lee',
-      operation: 'Create', domainLabels: ['product', 'analytics'], status: 'DONE',
-      desc: 'Product click aggregation — daily click counts by product and page.',
-      schedule: '0 4 * * *', freq: 'daily', time: '04:00', timezone: 'Asia/Singapore', endDate: '2026-12-31',
-      dataset: 'product_raw', table: 'product__click__daily', sql: '', schema: [],
-    },
-  ],
-  'product__view__hourly': [
-    {
-      id: 'REQ010', name: 'Hourly View Pipeline', date: '2026-04-01', requester: 'henry.ko',
-      operation: 'Create', domainLabels: ['product'], status: 'DONE',
-      desc: 'Stop the hourly product view pipeline — superseded by daily aggregation.',
-      schedule: '0 * * * *', freq: 'hourly', time: '00:00', timezone: 'UTC', endDate: '2026-06-01',
-      dataset: 'product_raw', table: 'product__view__hourly', sql: '', schema: [],
-    },
-  ],
-  'sales__revenue__daily': [
-    {
-      id: 'REQ011', name: 'Daily Revenue Pipeline', date: '2026-07-01', requester: 'jane.doe',
-      operation: 'Create', domainLabels: ['operations'], status: 'DONE',
-      desc: 'Daily revenue aggregation per region.',
-      schedule: '0 5 * * *', freq: 'daily', time: '05:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'sales_raw', table: 'sales__revenue__daily', sql: '', schema: [],
-    }
-  ],
-  'sales__leads__hourly': [
-    {
-      id: 'REQ012', name: 'Hourly Leads Tracking', date: '2026-07-02', requester: 'john.smith',
-      operation: 'Create', domainLabels: ['operations', 'marketing'], status: 'DONE',
-      desc: 'Hourly tracking of incoming sales leads.',
-      schedule: '0 * * * *', freq: 'hourly', time: '00:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'sales_raw', table: 'sales__leads__hourly', sql: '', schema: [],
-    }
-  ],
-  'hr__headcount__monthly': [
-    {
-      id: 'REQ013', name: 'Monthly Headcount', date: '2026-05-15', requester: 'sara.wong',
-      operation: 'Create', domainLabels: ['hr'], status: 'DONE',
-      desc: 'Monthly rollup of employee headcount.',
-      schedule: '0 0 1 * *', freq: 'monthly', time: '00:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'hr_raw', table: 'hr__headcount__monthly', sql: '', schema: [],
-    }
-  ],
-  'hr__attendance__daily': [
-    {
-      id: 'REQ014', name: 'Daily Attendance Report', date: '2026-06-20', requester: 'sara.wong',
-      operation: 'Create', domainLabels: ['hr'], status: 'DONE',
-      desc: 'Daily summary of attendance.',
-      schedule: '0 8 * * *', freq: 'daily', time: '08:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'hr_raw', table: 'hr__attendance__daily', sql: '', schema: [],
-    }
-  ],
-
-  // ── Public: shared_raw ────────────────────────────────
-  'shared__dim_date': [
-    {
-      id: 'REQ015', name: 'Date Dimension Table', date: '2026-01-10', requester: 'k.tobing',
-      operation: 'Create', domainLabels: ['analytics'], status: 'DONE',
-      desc: 'Shared date dimension table covering 2020–2030. Used across all divisions for consistent date joining.',
-      schedule: '0 0 1 1 *', freq: 'custom', time: '00:00', timezone: 'UTC', endDate: '2030-12-31',
-      dataset: 'shared_raw', table: 'shared__dim_date',
-      sql: `SELECT\n  date,\n  EXTRACT(YEAR FROM date) AS year,\n  EXTRACT(MONTH FROM date) AS month,\n  EXTRACT(DAY FROM date) AS day,\n  FORMAT_DATE('%A', date) AS day_name\nFROM UNNEST(GENERATE_DATE_ARRAY('2020-01-01', '2030-12-31')) AS date`,
-      schema: [
-        { name: 'date',     type: 'DATE',   desc: 'Calendar date', nullable: false },
-        { name: 'year',     type: 'INT64',  desc: 'Year number',   nullable: false },
-        { name: 'month',    type: 'INT64',  desc: 'Month number',  nullable: false },
-        { name: 'day',      type: 'INT64',  desc: 'Day of month',  nullable: false },
-        { name: 'day_name', type: 'STRING', desc: 'Day name',      nullable: false },
-      ],
-    },
-  ],
-  'shared__dim_region': [
-    {
-      id: 'REQ016', name: 'Region Dimension', date: '2026-01-15', requester: 'k.tobing',
-      operation: 'Create', domainLabels: ['analytics'], status: 'DONE',
-      desc: 'Shared region/country dimension table. Includes ISO codes, region groupings, and timezone info.',
-      schedule: '0 0 * * 1', freq: 'weekly', time: '00:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'shared_raw', table: 'shared__dim_region', sql: '', schema: [],
-    },
-  ],
-  'shared__exchange_rate__daily': [
-    {
-      id: 'REQ017', name: 'Daily Exchange Rate Sync', date: '2026-03-01', requester: 'k.tobing',
-      operation: 'Create', domainLabels: ['finance', 'analytics'], status: 'DONE',
-      desc: 'Daily FX rate feed synced from external source into BigQuery. Covers USD, EUR, SGD, IDR.',
-      schedule: '0 1 * * *', freq: 'daily', time: '01:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'shared_raw', table: 'shared__exchange_rate__daily', sql: '', schema: [],
-    },
-  ],
-
-  // ── Public: analytics_raw ─────────────────────────────
-  'analytics__kpi__daily': [
-    {
-      id: 'REQ018', name: 'Cross-Division KPI Dashboard', date: '2026-04-10', requester: 'k.tobing',
-      operation: 'Create', domainLabels: ['analytics'], status: 'DONE',
-      desc: 'Daily KPI rollup across all divisions. Feeds the executive BI dashboard.',
-      schedule: '0 7 * * *', freq: 'daily', time: '07:00', timezone: 'Asia/Jakarta', endDate: '2026-12-31',
-      dataset: 'analytics_raw', table: 'analytics__kpi__daily', sql: '', schema: [],
-    },
-  ],
-  'analytics__funnel__weekly': [
-    {
-      id: 'REQ019', name: 'Weekly Conversion Funnel', date: '2026-05-01', requester: 'alice.smith',
-      operation: 'Create', domainLabels: ['analytics', 'marketing'], status: 'DONE',
-      desc: 'Weekly funnel analysis from lead to converted customer. Joins data from marketing, product, and sales.',
-      schedule: '0 6 * * 1', freq: 'weekly', time: '06:00', timezone: 'UTC', endDate: '2026-12-31',
-      dataset: 'analytics_raw', table: 'analytics__funnel__weekly', sql: '', schema: [],
     },
   ],
 };
