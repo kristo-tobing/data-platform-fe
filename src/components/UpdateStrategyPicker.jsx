@@ -181,7 +181,7 @@ export default function UpdateStrategyPicker({ value, onChange }) {
       <div style={{ marginTop: 16, padding: '12px', background: 'rgba(47,129,247,0.1)', border: '1px solid var(--accent)', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--t1)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <span style={{ fontSize: 16 }}>ℹ️</span>
         <div style={{ lineHeight: 1.5 }}>
-          <strong>No Backfill Support:</strong> This platform is designed for daily forward-moving runs only. We do not support running historical backfills. If your pipeline requires a backfill for past dates, please create a standard Jira Ticket.
+          <strong>No Backfill Support:</strong> If your pipeline requires a backfill, please create a standard Jira Ticket.
         </div>
       </div>
     </div>

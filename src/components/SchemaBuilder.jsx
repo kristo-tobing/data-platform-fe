@@ -140,7 +140,7 @@ function CategoricalEditor({ values = [], onChange }) {
 }
 
 /* ── Schema Row ─────────────────────────────────────────── */
-function Row({ row, onChange, onDelete, isLocked, expanded, onToggleExpand }) {
+function Row({ row, onChange, onDelete, isLocked, expanded, onToggleExpand, isUpdate }) {
   const catValues = row.categorical?.values || [];
   const hasValues = catValues.length > 0;
 
@@ -176,10 +176,12 @@ function Row({ row, onChange, onDelete, isLocked, expanded, onToggleExpand }) {
             {hasValues ? `${catValues.length} vals` : '─'}
           </button>
         </td>
-        <td style={{ width: '8%', textAlign: 'center' }}>
-          {!isLocked && <button className="sb-del" type="button" onClick={onDelete}>×</button>}
-          {isLocked && <span style={{ fontSize: 10, color: 'var(--t3)' }}>Locked</span>}
-        </td>
+        {!isUpdate && (
+          <td style={{ width: '8%', textAlign: 'center' }}>
+            {!isLocked && <button className="sb-del" type="button" onClick={onDelete}>×</button>}
+            {isLocked && <span style={{ fontSize: 10, color: 'var(--t3)' }}>Locked</span>}
+          </td>
+        )}
       </tr>
 
       {/* Inline Categorical Editor */}
@@ -245,7 +247,7 @@ export default function SchemaBuilder({ value = [], onChange, isUpdate = false }
                   Values
                   <span style={{ marginLeft: 4, fontSize: 9, fontWeight: 400, color: 'var(--t3)', textTransform: 'none' }}>categorical</span>
                 </th>
-                <th style={{ width: '8%', padding: '8px 12px', textAlign: 'center', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}></th>
+                {!isUpdate && <th style={{ width: '8%', padding: '8px 12px', textAlign: 'center', background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}></th>}
               </tr>
             </thead>
             <tbody>
@@ -255,6 +257,7 @@ export default function SchemaBuilder({ value = [], onChange, isUpdate = false }
                   row={row}
                   isLocked={isUpdate && initialIds.has(row.id)}
                   expanded={expandedRowId === (row.id || idx)}
+                  isUpdate={isUpdate}
                   onChange={r => updateRow(idx, r)}
                   onDelete={() => deleteRow(idx)}
                   onToggleExpand={() => toggleExpand(row.id || idx)}

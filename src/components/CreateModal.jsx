@@ -144,7 +144,7 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
           <div className="f-row">
             <div className="f-grp">
               <label className="f-lbl">User <span className="req">*</span></label>
-              <input type="text" value={user} onChange={e => setUser(e.target.value)} />
+              <input type="text" value={user} disabled style={{ backgroundColor: 'var(--surface)', color: 'var(--t3)', cursor: 'not-allowed', border: '1px solid var(--border)' }} />
             </div>
             <div className="f-grp">
               <label className="f-lbl">Operation <span className="req">*</span></label>

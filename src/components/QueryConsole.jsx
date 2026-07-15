@@ -15,6 +15,7 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
   const [open, setOpen] = useState(required || !!value);
   const [runningDry, setRunningDry] = useState(false);
   const [checkResults, setCheckResults] = useState(null);
+  const [simMode, setSimMode] = useState('demo-error');
 
   useEffect(() => {
     setCheckResults(null);
@@ -32,8 +33,6 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
     setCheckResults([...results]);
 
     let hasBlockerError = false;
-    const hasSyntaxError = value.toLowerCase().includes('error');
-    const hasTableError = value.toLowerCase().includes('notfound');
 
     for (let i = 0; i < results.length; i++) {
       const check = results[i];
@@ -52,19 +51,16 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
       let status = 'success';
       let detail = 'Passed';
 
-      if (check.id === 'syntax' && hasSyntaxError) {
+      if (check.id === 'syntax' && simMode === 'demo-error') {
         status = 'error';
         detail = 'Failed (Syntax Error)';
-      } else if (check.id === 'existence' && hasTableError) {
-        status = 'error';
-        detail = 'Failed (Table Not Found)';
       } else if (!check.isBlocker) {
-        if (check.id === 'pii' && (value.toLowerCase().includes('email') || value.toLowerCase().includes('customer_id'))) {
+        if (check.id === 'cost' && (simMode === 'demo-error' || simMode === 'demo-warning')) {
+          status = 'warning';
+          detail = 'High Cost Warning';
+        } else if (check.id === 'pii' && (simMode === 'demo-error' || simMode === 'demo-warning')) {
           status = 'warning';
           detail = 'PII Detected';
-        } else if (Math.random() > 0.7) {
-          status = 'warning';
-          detail = 'Warning Detected';
         }
       }
 
@@ -127,6 +123,15 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
             <div className="m-bar">
               <div className="m-tab"><span className="m-tab-icon">◈</span> query.sql</div>
               <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+                <select 
+                  value={simMode} 
+                  onChange={e => setSimMode(e.target.value)}
+                  style={{ background: 'var(--surface)', color: 'var(--t2)', border: '1px solid var(--border)', borderRadius: 4, fontSize: 11, padding: '2px 6px' }}
+                >
+                  <option value="demo-error">Demo: Error + Warning</option>
+                  <option value="demo-warning">Demo: Warnings Only</option>
+                  <option value="demo-pass">Demo: All Passed</option>
+                </select>
                 <button className="m-btn clr" type="button" onClick={() => onChange('')}>✕ Clear</button>
                 <button className="m-btn dry" type="button" onClick={handleDryRun} disabled={runningDry || !value.trim()}>
                   {runningDry ? '⏳ Running Validation…' : '▶ Run Validation'}
@@ -138,7 +143,7 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
               value={value}
               onChange={e => onChange(e.target.value)}
               spellCheck={false}
-              placeholder="-- Write your BigQuery SQL here… Type 'error' to simulate Syntax Error."
+              placeholder="-- Write your BigQuery SQL here…"
             />
             <div className="m-statusbar">
               BigQuery Dialect
