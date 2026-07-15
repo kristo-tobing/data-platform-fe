@@ -1,30 +1,113 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function QueryConsole({ value = '', onChange, dataset, table, required = false }) {
-  const [dryResult, setDryResult] = useState(null);
-  const [runningDry, setRunningDry] = useState(false);
+const validationChecksDef = [
+  { id: 'syntax', name: 'Syntax Validation', isBlocker: true },
+  { id: 'existence', name: 'Table & Object Existence', isBlocker: true },
+  { id: 'schema', name: 'Schema Validation', isBlocker: true },
+  { id: 'parameter', name: 'Parameter Check', isBlocker: true },
+  { id: 'cost', name: 'Cost Estimation', isBlocker: false },
+  { id: 'pii', name: 'PII & Naming Convention', isBlocker: false },
+  { id: 'reference', name: 'Table Reference Check', isBlocker: false },
+  { id: 'categorical', name: 'Column Categorical Mapping', isBlocker: false }
+];
+
+export default function QueryConsole({ value = '', onChange, dataset, table, required = false, onValidationComplete }) {
   const [open, setOpen] = useState(required || !!value);
-  const [dryBytes, setDryBytes] = useState(0);
-  const [dryCost, setDryCost] = useState(0);
+  const [runningDry, setRunningDry] = useState(false);
+  const [checkResults, setCheckResults] = useState(null);
 
-  const handleDryRun = () => {
+  useEffect(() => {
+    setCheckResults(null);
+    if (onValidationComplete) onValidationComplete(false);
+  }, [value]);
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  const handleDryRun = async () => {
+    if (!value.trim()) return;
     setRunningDry(true);
-    setDryResult(null);
-    setTimeout(() => {
-      setRunningDry(false);
-      const pii = value.toLowerCase().includes('customer_id') || value.toLowerCase().includes('email') || value.toLowerCase().includes('phone');
-      const bytes = Math.floor(Math.random() * 500) + 100;
-      setDryBytes(bytes);
-      setDryCost((bytes * 0.005).toFixed(4));
-      setDryResult(pii ? 'warn' : 'ok');
-    }, 800);
+    if (onValidationComplete) onValidationComplete(false);
+
+    let results = validationChecksDef.map(c => ({ ...c, status: 'pending', detail: 'Pending' }));
+    setCheckResults([...results]);
+
+    let hasBlockerError = false;
+    const hasSyntaxError = value.toLowerCase().includes('error');
+    const hasTableError = value.toLowerCase().includes('notfound');
+
+    for (let i = 0; i < results.length; i++) {
+      const check = results[i];
+
+      if (hasBlockerError) {
+        results[i] = { ...check, status: 'pending', detail: 'Skipped' };
+        setCheckResults([...results]);
+        continue;
+      }
+
+      results[i] = { ...check, status: 'running', detail: 'Running...' };
+      setCheckResults([...results]);
+
+      await sleep(300 + Math.random() * 200);
+
+      let status = 'success';
+      let detail = 'Passed';
+
+      if (check.id === 'syntax' && hasSyntaxError) {
+        status = 'error';
+        detail = 'Failed (Syntax Error)';
+      } else if (check.id === 'existence' && hasTableError) {
+        status = 'error';
+        detail = 'Failed (Table Not Found)';
+      } else if (!check.isBlocker) {
+        if (check.id === 'pii' && (value.toLowerCase().includes('email') || value.toLowerCase().includes('customer_id'))) {
+          status = 'warning';
+          detail = 'PII Detected';
+        } else if (Math.random() > 0.7) {
+          status = 'warning';
+          detail = 'Warning Detected';
+        }
+      }
+
+      results[i] = { ...check, status, detail };
+      setCheckResults([...results]);
+
+      if (status === 'error' && check.isBlocker) {
+        hasBlockerError = true;
+      }
+    }
+
+    setRunningDry(false);
+    if (onValidationComplete) {
+      onValidationComplete(!hasBlockerError);
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return '◈';
+      case 'running': return '⏳';
+      case 'success': return '✓';
+      case 'warning': return '⚠';
+      case 'error': return '✕';
+      default: return '◈';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'success': return 'var(--green)';
+      case 'warning': return '#d29922';
+      case 'error': return 'var(--red)';
+      case 'running': return 'var(--accent)';
+      default: return 'var(--t3)';
+    }
   };
 
   return (
     <div style={{ marginTop: 18 }}>
       <div className="coll-hd" onClick={() => setOpen(o => !o)}>
         <span className={`coll-arr${open ? ' open' : ''}`}>▶</span>
-        <span className="coll-lbl"><strong>Query Console</strong></span>
+        <span className="coll-lbl"><strong>Query Console &amp; Validation</strong></span>
         <span className="coll-badge" style={required && !value ? { color: 'var(--red)', borderColor: 'var(--red)' } : {}}>
           {required ? (value ? 'Included ✓' : 'Required *') : (value ? 'Included ✓' : 'Optional')}
         </span>
@@ -32,41 +115,11 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
 
       {open && (
         <div>
-          {/* Target table info */}
           {dataset && table && table !== 'NEW' && (
             <div style={{ padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border)', borderBottom: 'none', fontSize: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ fontSize: 14 }}>
-                  <strong>Target:</strong> <span style={{ fontFamily: "'JetBrains Mono',monospace", color: 'var(--accent)' }}>{dataset}.{table}</span>
-                </div>
+              <div style={{ fontSize: 14, marginBottom: 12 }}>
+                <strong>Target:</strong> <span style={{ fontFamily: "'JetBrains Mono',monospace", color: 'var(--accent)' }}>{dataset}.{table}</span>
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--t2)' }}>Table Columns (Schema):</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid var(--border)' }}>
-                <thead style={{ background: 'var(--surface)', textAlign: 'left' }}>
-                  <tr>
-                    <th style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>Field name</th>
-                    <th style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>Type</th>
-                    <th style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>Mode</th>
-                  </tr>
-                </thead>
-                <tbody style={{ fontFamily: "'JetBrains Mono',monospace" }}>
-                  <tr>
-                    <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>id</td>
-                    <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)', color: 'var(--accent)' }}>STRING</td>
-                    <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>REQUIRED</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>status</td>
-                    <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)', color: 'var(--accent)' }}>STRING</td>
-                    <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--border)' }}>NULLABLE</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '4px 8px' }}>created_at</td>
-                    <td style={{ padding: '4px 8px', color: 'var(--accent)' }}>TIMESTAMP</td>
-                    <td style={{ padding: '4px 8px' }}>REQUIRED</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
           )}
 
@@ -74,45 +127,64 @@ export default function QueryConsole({ value = '', onChange, dataset, table, req
             <div className="m-bar">
               <div className="m-tab"><span className="m-tab-icon">◈</span> query.sql</div>
               <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-                <button className="m-btn clr" type="button" onClick={() => { onChange(''); setDryResult(null); }}>✕ Clear</button>
-                <button className="m-btn dry" type="button" onClick={handleDryRun} disabled={runningDry}>
-                  {runningDry ? '⏳ Checking…' : '▶ Dry Run'}
+                <button className="m-btn clr" type="button" onClick={() => onChange('')}>✕ Clear</button>
+                <button className="m-btn dry" type="button" onClick={handleDryRun} disabled={runningDry || !value.trim()}>
+                  {runningDry ? '⏳ Running Validation…' : '▶ Run Validation'}
                 </button>
               </div>
             </div>
             <textarea
               className="m-editor"
               value={value}
-              onChange={e => { onChange(e.target.value); setDryResult(null); }}
+              onChange={e => onChange(e.target.value)}
               spellCheck={false}
-              placeholder="-- Write your BigQuery SQL here…"
+              placeholder="-- Write your BigQuery SQL here… Type 'error' to simulate Syntax Error."
             />
             <div className="m-statusbar">
               BigQuery Dialect
-              <span style={{ marginLeft: 16, color: 'var(--accent)' }}>LIMIT 100 enforced</span>
+              <span style={{ marginLeft: 16, color: 'var(--accent)' }}>Validation enforced</span>
               <span style={{ marginLeft: 'auto' }}>SQL · UTF-8</span>
             </div>
           </div>
 
           <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(210,153,34,0.1)', border: '1px solid #d29922', borderRadius: 4, fontSize: 11, color: 'var(--t1)' }}>
-            <strong>💡 Tip:</strong> Consider filtering on partitioned columns (like <code>created_at</code>) in your WHERE clause to minimize bytes scanned and reduce query costs.
+            <strong>💡 Tip:</strong> Validation must pass without blocker errors to submit. Warnings are allowed.
           </div>
 
-          {dryResult === 'ok' && (
-            <div className="dr-result ok show">
-              <div className="dr-icon">✓</div>
-              <div>
-                <div className="dr-title">Dry Run Passed</div>
-                <div className="dr-detail"><strong>Status:</strong> Passed &nbsp;|&nbsp; <strong>Scanned:</strong> {dryBytes} MB &nbsp;|&nbsp; <strong>Est. Cost:</strong> ${dryCost} &nbsp;|&nbsp; <strong>PII:</strong> None &nbsp;|&nbsp; <strong>Syntax:</strong> Valid</div>
+          {checkResults && (
+            <div style={{ marginTop: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.02)' }}>
+                Validation Results
               </div>
-            </div>
-          )}
-          {dryResult === 'warn' && (
-            <div className="dr-result warn show">
-              <div className="dr-icon">⚠</div>
               <div>
-                <div className="dr-title">Dry Run Warning</div>
-                <div className="dr-detail"><strong>Status:</strong> Warning &nbsp;|&nbsp; <strong>Scanned:</strong> {dryBytes} MB &nbsp;|&nbsp; <strong>Est. Cost:</strong> ${dryCost} &nbsp;|&nbsp; <strong>PII:</strong> Detected</div>
+                {checkResults.map(check => (
+                  <div key={check.id} style={{ 
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                    padding: '10px 16px', borderBottom: '1px solid var(--border)', fontSize: 13 
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ color: getStatusColor(check.status), fontWeight: 'bold', width: 20, textAlign: 'center' }}>
+                        {getStatusIcon(check.status)}
+                      </div>
+                      <div style={{ color: check.status === 'pending' ? 'var(--t3)' : 'var(--t1)' }}>
+                        {check.name}
+                        {check.isBlocker && (
+                          <span style={{ marginLeft: 8, fontSize: 10, padding: '2px 6px', background: 'rgba(255,255,255,0.1)', borderRadius: 4, color: 'var(--t3)' }}>
+                            BLOCKER
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ 
+                      fontSize: 12, fontWeight: 600, 
+                      color: getStatusColor(check.status),
+                      background: check.status !== 'pending' ? `color-mix(in srgb, ${getStatusColor(check.status)} 15%, transparent)` : 'rgba(255,255,255,0.05)',
+                      padding: '2px 8px', borderRadius: 12
+                    }}>
+                      {check.detail}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

@@ -24,6 +24,7 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
   const [schema, setSchema] = useState([]);
   
   const [submitting, setSubmitting] = useState(false);
+  const [queryValid, setQueryValid] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -97,6 +98,10 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
   const handleSubmit = () => {
     if (!ticketName || !user || !desc || !ds || !finalTbl || !sql.trim()) {
       addToast('error', 'Missing fields', 'Please fill in all required fields including the Query.');
+      return;
+    }
+    if (!queryValid) {
+      addToast('error', 'Validation Failed', 'Please run validation and ensure no blocker errors exist.');
       return;
     }
     setSubmitting(true);
@@ -192,13 +197,20 @@ export default function CreateModal({ open, user: currentUser, onClose, onSubmit
           <UpdateStrategyPicker value={updateStrategy} onChange={setUpdateStrategy} />
           <SchedulePicker value={schedule} onChange={setSchedule} />
 
-          <QueryConsole value={sql} onChange={setSql} dataset={ds} table={finalTbl} required />
+          <QueryConsole 
+            value={sql} 
+            onChange={setSql} 
+            dataset={ds} 
+            table={finalTbl} 
+            required 
+            onValidationComplete={setQueryValid} 
+          />
           <SchemaBuilder value={schema} onChange={setSchema} isUpdate={opLabel === 'Update'} />
         </div>
 
         <div className="modal-ft">
           <button className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
+          <button className="btn-primary" onClick={handleSubmit} disabled={submitting || !queryValid}>
             {submitting ? <><div className="spinner"></div> Submitting…</> : 'Submit Request'}
           </button>
         </div>

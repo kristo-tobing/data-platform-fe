@@ -51,3 +51,51 @@ export function extractColumnsFromSql(sql) {
   // Return unique columns
   return [...new Set(columns)];
 }
+
+export function extractTablesFromSql(sql) {
+  if (!sql || typeof sql !== 'string') return [];
+  
+  const cleanSql = sql
+    .replace(/--.*$/gm, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // Look for FROM or JOIN followed by table name
+  // Format: FROM dataset.table OR JOIN `dataset.table`
+  const regex = /(?:FROM|JOIN)\s+([a-zA-Z0-9_`.-]+)/gi;
+  const tables = [];
+  let match;
+  
+  while ((match = regex.exec(cleanSql)) !== null) {
+    let tableName = match[1].replace(/[`"']/g, ''); // strip backticks/quotes
+    tables.push(tableName);
+  }
+  
+  return [...new Set(tables)];
+}
+
+export function validateSqlSyntax(sql) {
+  if (!sql || typeof sql !== 'string' || sql.trim() === '') {
+    return { valid: false, error: 'Query cannot be empty.' };
+  }
+  
+  const cleanSql = sql
+    .replace(/--.*$/gm, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+    
+  if (!/SELECT\s/i.test(cleanSql)) {
+    return { valid: false, error: 'Missing SELECT statement.' };
+  }
+  
+  if (!/FROM\s/i.test(cleanSql)) {
+    return { valid: false, error: 'Missing FROM statement.' };
+  }
+  
+  // Basic check for mismatched parentheses
+  const openParens = (cleanSql.match(/\(/g) || []).length;
+  const closeParens = (cleanSql.match(/\)/g) || []).length;
+  if (openParens !== closeParens) {
+    return { valid: false, error: `Mismatched parentheses (open: ${openParens}, close: ${closeParens}).` };
+  }
+  
+  return { valid: true };
+}
